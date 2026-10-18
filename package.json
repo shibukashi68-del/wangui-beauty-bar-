@@ -1,0 +1,24 @@
+{
+  "name": "wangui-beauty-bar",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Wangui Beauty Bar - Salon website",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node server.mjs",
+    "watch": "tsc --watch",
+    "migrate": "node migrate.mjs",
+    "check": "node check.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check:all": "node verify-all.mjs",
+    "check:bookings-api": "node verify-bookings-api.mjs",
+    "check:video-api": "node verify-video-api.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^30.1.3",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

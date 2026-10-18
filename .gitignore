@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Compiled TypeScript output.
+# The .ts files in css/ are the source; tsc emits .js beside them.
+# Ignoring the emitted JS keeps the repo to sources only — rebuild with
+# `npm run build` (or `node ./node_modules/typescript/bin/tsc`).
+css/*.js
+css/*.js.map
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local logs
+*.log
