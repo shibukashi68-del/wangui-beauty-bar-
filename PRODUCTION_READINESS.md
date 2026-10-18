@@ -13,13 +13,13 @@ This file reflects the current workspace after the booking, upload, and migratio
 
 ## Current progress
 
-- Render free staging Blueprint prepared in `render.yaml` with free PostgreSQL, migration-on-start, and a health check. It is intended only for temporary testing.
+- Render free staging Blueprint prepared in `render.yaml` with an external Supabase PostgreSQL connection, migration-on-start, and a health check. It creates only the free Render web service and requires `DATABASE_URL` and `ADMIN_PASSWORD` secrets at sync/deploy.
 - Corrected video serving to honor `VIDEO_STORAGE_DIR`. On a fresh empty configured volume, startup seeds the bundled videos and catalogue once without overwriting existing media.
-- **Not yet provisioned or verified on Render.** No hosting resources have been created. Free Render PostgreSQL expires after 30 days and has no backups; the free web filesystem is ephemeral, so uploaded media is not durable. Do not store real bookings on this staging setup.
+- **Not yet provisioned or verified on Render or Supabase.** No new hosting resources have been created. The Supabase Free database may pause after inactivity and has limited capacity; the free Render web filesystem is ephemeral, so uploaded media is not durable. Do not store real bookings on this trial setup.
 
 ## Required before public launch
 
-1. Deploy the Render free staging Blueprint and verify `/api/health` and booking/video flows using test data only. Before public launch, provision production hosting with persistent PostgreSQL and durable media storage.
+1. Create a Supabase Free database and deploy the Render free staging Blueprint. Verify `/api/health` and booking/video flows using test data only. Before public launch, provision production hosting with persistent PostgreSQL and durable media storage.
 2. Choose a domain and configure HTTPS. Set `NODE_ENV=production` and a unique `ADMIN_PASSWORD` between 12 and 200 bytes. Production startup rejects a password outside that range.
 3. Mount durable media storage and set `VIDEO_STORAGE_DIR` and `VIDEO_CATALOGUE_PATH`. Copy the supplied video files and `css/videos.json` to those paths before launch. The current app supports one instance because sessions and rate limits are held in process memory.
 4. Configure automated database backups and complete a restore drill. Confirm that the host's storage backups cover uploaded videos and the video catalogue.

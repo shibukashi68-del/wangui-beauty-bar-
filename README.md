@@ -33,16 +33,16 @@ Set `DATABASE_URL` instead of the `PG*` variables when using a hosted PostgreSQL
 
 ## Render free staging setup
 
-The root `render.yaml` defines a free Render web service and free PostgreSQL database for temporary testing. Render's free services are not production storage: the web service sleeps when idle and its local file changes are lost on restart/redeploy; free PostgreSQL expires after 30 days, has 1 GB storage, and does not include backups. Uploaded videos are therefore temporary. Check Render's current free-tier limits and usage before deploying. No Render resources are created until you connect the repository and deploy the Blueprint.
+The root `render.yaml` defines a free Render web service. It uses an external Supabase PostgreSQL database, avoiding Render's one-free-database-per-workspace limit. This is a public trial configuration, not dependable production hosting: Render's free web service sleeps when idle and its local file changes are lost on restart/redeploy. Supabase's Free plan has limited database/storage capacity and may pause projects after inactivity; it does not provide production-grade availability or backups. Uploaded videos are temporary. Check the providers' current limits before deploying.
 
-1. Push the project to a Git provider connected to your Render account, then choose **New > Blueprint** and select this repository.
-2. Review the proposed free staging resources and choose a region close to your customers for both the app and database.
-3. When prompted, set a unique staff `ADMIN_PASSWORD` (12–200 bytes). Do not put it in this repository.
+1. Create a Supabase Free project and set a strong, unique database password. Select a region reasonably close to Nairobi if available.
+2. In Supabase, open **Connect**, choose **Session pooler**, and copy its PostgreSQL connection string. Replace its password placeholder, percent-encoding reserved characters if necessary. Use Session pooler because it is IPv4-compatible; the direct endpoint may require IPv6.
+3. In Render, sync the `wangui-beauty-bar-staging` Blueprint from this repository. It creates only a free web service. Enter the Supabase connection string for `DATABASE_URL` and a unique staff `ADMIN_PASSWORD` (12–200 bytes) in Render's secret prompts. Never commit either secret.
 4. Deploy the Blueprint. It builds the TypeScript app, applies database migrations at startup, and serves `/api/health` as the health check.
 
 The app serves the bundled `/video/` files for the initial test. Staff uploads may work during a running instance, but treat them as disposable because the free web service has no persistent disk. Do not use this staging database for real customer bookings.
 
-After staging is live, verify `/api/health` and perform the documented booking and video API checks using the staging environment only. Do not use the staging setup for production bookings. Before public launch, create a separate production environment and review its backup, privacy, and operational requirements below.
+After staging is live, verify `/api/health` and perform the documented booking and video API checks using the staging environment only. Supabase's Free plan may pause the project after a week of inactivity and has limited capacity; do not rely on it for real customer bookings. Before public launch, create a production environment with durable database/media storage and backups, and review the privacy and operational requirements below.
 
 ## Deployment requirements
 
