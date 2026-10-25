@@ -19,3 +19,7 @@ Thumbs.db
 
 # Local logs
 *.log
+
+# Continuity
+SESSION_HANDOFF.md
+.continuity/
