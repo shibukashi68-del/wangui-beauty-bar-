@@ -24,10 +24,11 @@ export async function openViewer(video: Video): Promise<void> {
   overlay.setAttribute('aria-label', video.caption || video.file);
 
   const player = document.createElement('video');
-  player.src = `${VIDEO_DIR}${encodeURI(video.file)}`;
+  player.src = video.url || `${VIDEO_DIR}${encodeURI(video.file)}`;
   player.controls = true;
   player.autoplay = true;
   player.loop = true;
+  player.preload = 'metadata';
   player.playsInline = true;
   player.setAttribute('playsinline', '');
 
@@ -81,7 +82,7 @@ export function mountHeroVideo(root: HTMLElement): void {
     vid.loop = true;
     vid.autoplay = true;
     vid.playsInline = true;
-    vid.preload = 'auto';
+    vid.preload = 'metadata';
     vid.setAttribute('playsinline', '');
     vid.setAttribute('aria-hidden', 'true');
     // If the file is missing, drop the video and keep the text hero.
@@ -91,7 +92,9 @@ export function mountHeroVideo(root: HTMLElement): void {
     });
     // Autoplay can be blocked; treat that as a still-image hero.
     vid.addEventListener('loadeddata', () => section.classList.add('has-video'));
-    vid.play?.().catch(() => {});
+    if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      vid.play?.().catch(() => {});
+    }
     section.appendChild(vid);
   }
 
@@ -177,4 +180,3 @@ export async function mountGallery(root: HTMLElement, { base = '', dept = '' }: 
   items.forEach(v => grid.appendChild(videoCard(v, { base, onOpen: openViewer })));
   root.appendChild(grid);
 }
-

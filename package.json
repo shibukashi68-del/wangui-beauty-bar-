@@ -12,7 +12,7 @@
     "test": "node --test test/*.test.mjs",
     "check:all": "node verify-all.mjs",
     "check:bookings-api": "node verify-bookings-api.mjs",
-    "check:video-api": "node verify-video-api.mjs"
+    "check:public-api": "node verify-video-api.mjs"
   },
   "devDependencies": {
     "jsdom": "^30.1.3",

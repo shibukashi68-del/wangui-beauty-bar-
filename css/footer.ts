@@ -42,7 +42,7 @@ export function mountFooter(root: HTMLElement, { base = '' }: MountFooterOptions
       <div>
         <div class="eyebrow">Studio</div>
         <p style="margin-top:var(--sp-2)"><a href="#/booking">Book a session</a></p>
-        <p style="margin-top:var(--sp-1)"><a href="#/admin">Staff sign in</a></p>
+        <p style="margin-top:var(--sp-1)"><a href="#/owner">Owner sign-in</a></p>
       </div>
     </div>
     <div class="container" style="margin-top:var(--sp-6);text-align:center;color:var(--color-muted);font-size:var(--fs-xs)">

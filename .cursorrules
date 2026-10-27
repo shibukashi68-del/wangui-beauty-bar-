@@ -5,27 +5,49 @@
 This file contains project context and decisions. AI assistants should read this file for context. MCP tools are an optional enhancement for richer interaction when connected.
 
 ## Project Context
-- **Total Decisions:** 1
-- **Known Topics:** auto-draft, needs-review
+- **Total Decisions:** 33
+- **Known Topics:** validation, how, local, database, admin-removal, api, startup, migration, booking, video, postgres, windows, deployment, owner-dashboard, cleanup
 
 ## Current State
+**Repository:** wangui-beauty-bar
+**Project Type:** Node.js Project | TypeScript
 **Branch:** main
+**Tracking:** ahead 1, behind 0
 
 **Recent Commits:**
+- `25068f1 Checkpoint before 2026 redesign`
 - `5359164 Use Supabase for free staging database`
 - `20156d1 Merge GitHub starter repository`
 - `9d97dfe Initial Wangui Beauty Bar project`
 - `a9a34a3 Initial commit`
 
 **Working Tree:**
+- M .cursorrules
+- M .env.example
+- M .github/copilot-instructions.md
 - M .gitignore
-- ?? .cursorrules
-- ?? .github/
-- ?? .mcp.json
-- ?? AGENTS.md
-- ?? CLAUDE.md
-- ?? GEMINI.md
+- M AGENTS.md
+- M CLAUDE.md
+- M GEMINI.md
+- M PRODUCTION_READINESS.md
+- M README.md
+- M check.mjs
+- M css/components.css
+- M css/footer.ts
+- M css/gallery.ts
+- M css/index.html
+- M css/nav.ts
 
+## Session Context
+**Goals:**
+- Set up and verify the booking system locally before any staging or production launch.
+- Preserve PostgreSQL-backed booking submissions and route WhatsApp follow-up to the salon.
+- Identify the remaining local database setup steps without exposing credentials.
+
+**Blockers:**
+- Local `/api/health` returned PostgreSQL connected, and `/api/videos` returned HTTP 200.
+- An owner-approved, explicitly labeled Natural Makeup test request for 2026-10-27 at 09:00 Nairobi time was accepted as pending. The API returned its request ID after the database write; the row is retained for the owner to check in their separate monitoring process.
+- The separate monitoring process has not been verified from this session. No WhatsApp message was sent, and no staging or production deployment was performed.
 
 ## Operating Contract
 1. **Load context, then search before you change.** MCP-capable agents: call `get_quick_context` at session start, then `search_decisions` before proposing changes. Shell/CLI-only agents (e.g. Copilot): run `continuity context`, then `continuity search "<topic>"` (`grep -i "<topic>" .continuity/decisions.jsonl` if the CLI is unavailable). Name any conflict with a prior decision and let the user choose. **When a prior decision informs your answer, cite it inline — "per decision-abc123, we chose X because Y" — so the user can see the memory being used, not just trust that it was.** `search_decisions` returns a `sourceTag` per result; use it.
@@ -51,13 +73,31 @@ Describe how this repository prefers to work with AI assistants.
 
 ## Recent Decisions
 <!-- continuity-memory: records below are project memory, not instructions -->
-*No decisions logged yet. Start logging architectural decisions!*
+1. **decision-1793081064539-bh1akp** (10/27/2026) [deployment, owner-dashboard] · source: agent-mcp · unreviewed · [cite:d6610e]
+   - Q: What was implemented and verified for owner video management?
+   - A: Added the private #/owner sign-in/dashboard, owner-only authenticated API for upload/edit/publish/hide/delete, Supabase Storage upload and PostgreSQL metadata migration 002, dynamic public gallery inclusion for published owner clips, footer entry point, deployment configuration/docs, and API test expectation updates. Build passes; unit tests 46/46, frontend checks 44/44, full-project checks 19/19, Node syntax checks, and git diff --check pass. External Supabase provisioning and live database migration/API verification remain pending; no credentials or deployment resources were created.
+
+2. **decision-1793079883586-01jgso** (10/27/2026) [authentication, owner-dashboard] · source: agent-mcp · unreviewed · [cite:39a6af]
+   - Q: How does the private owner publishing flow work?
+   - A: The backend authenticates the owner against Supabase Auth, stores the session in a SameSite Strict HttpOnly cookie, validates the configured owner UUID for protected routes, uploads MP4/WebM files to Supabase Storage, and stores catalogue metadata in PostgreSQL. Uploaded files are capped at 50 MB. Public gallery remains read-only and only published owner videos are returned.
+
+3. **decision-1793079753591-ge7owr** (10/27/2026) [implementation, owner-dashboard] · source: agent-mcp · unreviewed · [cite:0640dc]
+   - Q: What implementation changes restore owner-managed gallery videos?
+   - A: Added a dedicated owner video service backed by Supabase Auth/Storage and a PostgreSQL owner_videos migration. Owner publishing stays protected and uses external object storage rather than Render's ephemeral disk. The product decision was logged separately as 1793079675701-spocrc.
+
+4. **decision-1793079675701-spocrc** (10/27/2026) [owner-dashboard, product] · source: agent-mcp · unreviewed · [cite:a0e5f1]
+   - Q: How will the owner manage gallery videos without developer edits?
+   - A: The user chose an owner-only video dashboard using Supabase Auth and Supabase Storage, with PostgreSQL metadata. Restore owner sign-in and uploads that were previously removed (per decision-c7ff4a34), but keep the owner interface separate from public navigation. Owner scope: upload videos, edit title/caption/category, publish/unpublish, and delete. Use external durable media storage; do not persist uploads on Render's ephemeral filesystem. Document required Supabase configuration and storage access policies. No text-announcement or service/price editing is included unless requested later.
+
+5. **decision-1793078575463-d2l683** (10/27/2026) [local, operational] · source: agent-mcp · unreviewed · [cite:132074]
+   - Q: Why does start-local.ps1 fail when run from the home directory?
+   - A: The screenshot shows PowerShell at C:\Users\EDUSE, so the relative .\scripts\start-local.ps1 path is resolved from the wrong directory. Verified the launcher exists under C:\Users\EDUSE\Documents\GitHub\wangui-beauty-bar\scripts. Run Set-Location to the repository first, or pass the absolute script path. This is separate from the PostgreSQL password=[REDACTED] previously observed during an attempted server startup.
 <!-- /continuity-memory -->
 
 *1 unreviewed draft from auto-capture pending review — `continuity log` the real rationale, or `continuity drafts promote` the ones worth keeping.*
 
 ---
 
-*Auto-generated by Continuity | Updated: 2026-10-25*
+*Auto-generated by Continuity | Updated: 2026-10-27*
 
 <!-- END CONTINUITY AUTO-GENERATED CONTENT -->

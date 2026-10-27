@@ -1,17 +1,10 @@
 import { CONFIG } from './config.js';
 
-// Nav links. Each entry: [label, hash route]. The route path is also what
-// app.ts matches against to mark the active link.
-const LINKS: Array<[string, string]> = [
-  ['Home','#/'],
-  ['Wigs & Hair','#/dept/wigs-hair'],
-  ['Makeup','#/dept/makeup'],
-  ['Nails','#/dept/nails'],
-  ['Brows & Lashes','#/dept/brows-lashes'],
-  ['Gallery','#/gallery'],
-  ['Book','#/booking'],
-  ['Manage Videos','#/admin/videos'],
-];
+const WHATSAPP_URL = CONFIG.whatsappNumber
+  ? `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(
+    `Hello ${CONFIG.salonName}, I would like to enquire about booking a beauty service. Please confirm availability.`,
+  )}`
+  : '#/contact';
 
 export interface MountNavOptions {
   base?: string;
@@ -27,12 +20,24 @@ export function mountNav(root: HTMLElement, { base = '', active = '' }: MountNav
       <a class="brand" href="#/">
         <span>${CONFIG.salonName}</span>
       </a>
-      <nav class="nav" aria-label="Primary">
-        ${LINKS.map(([label, href]) =>
-          `<a href="${href}" ${href.replace(/^#/, '') === active ? 'aria-current="page"' : ''}>${label}</a>`
-        ).join('')}
+      <nav class="nav" id="primary-nav" aria-label="Primary">
+        <a href="#/" ${active === '/' ? 'aria-current="page"' : ''}>Home</a>
+        <details class="nav__services">
+          <summary>Services</summary>
+          <div class="nav__menu">
+            <a href="#/dept/wigs-hair">Wigs &amp; Hair</a>
+            <a href="#/dept/makeup">Makeup</a>
+            <a href="#/dept/nails">Nails</a>
+            <a href="#/dept/brows-lashes">Brows &amp; Lashes</a>
+            <a href="#/other-services">Other Beauty Services</a>
+            <a href="#/occasions">Bridal &amp; Special Occasions</a>
+          </div>
+        </details>
+        <a href="#/gallery" ${active === '/gallery' ? 'aria-current="page"' : ''}>Video Gallery</a>
+        <a href="#/contact" ${active === '/contact' ? 'aria-current="page"' : ''}>Contact</a>
+        <a class="nav__cta" href="${WHATSAPP_URL}" ${CONFIG.whatsappNumber ? 'target="_blank" rel="noopener noreferrer"' : ''}>Book via WhatsApp</a>
       </nav>
-      <button class="nav-toggle" aria-expanded="false">Menu</button>
+      <button class="nav-toggle" type="button" aria-controls="primary-nav" aria-expanded="false">Menu</button>
     </div>`;
 
   const toggle = header.querySelector('.nav-toggle') as HTMLButtonElement | null;
@@ -40,26 +45,15 @@ export function mountNav(root: HTMLElement, { base = '', active = '' }: MountNav
 
   const closeNav = () => {
     toggle?.setAttribute('aria-expanded', 'false');
-    if (nav) nav.style.display = '';
+    header.classList.remove('is-nav-open');
   };
 
   toggle?.addEventListener('click', () => {
     const open = toggle.getAttribute('aria-expanded') === 'true';
     toggle.setAttribute('aria-expanded', String(!open));
-    if (nav) {
-      nav.style.display = open ? '' : 'flex';
-      nav.style.flexDirection = 'column';
-      nav.style.position = 'absolute';
-      nav.style.top = '72px';
-      nav.style.left = '0';
-      nav.style.right = '0';
-      nav.style.background = 'var(--color-bg)';
-      nav.style.padding = 'var(--sp-5)';
-    }
+    header.classList.toggle('is-nav-open', !open);
   });
 
-  // In a single-page app the document never reloads, so close the mobile
-  // menu whenever a nav link is followed.
   nav?.addEventListener('click', (e) => {
     if ((e.target as HTMLElement).closest('a')) closeNav();
   });

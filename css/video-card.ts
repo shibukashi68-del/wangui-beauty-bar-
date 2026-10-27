@@ -7,88 +7,90 @@ export interface VideoCardOptions {
   onOpen?: (video: Video) => void;
 }
 
-/**
- * A gallery tile for one video.
- *
- * Behaviour:
- *  - The first frame is shown as the poster, so the tile is never blank.
- *  - Hovering (or focusing) plays a muted preview; leaving pauses and rewinds.
- *  - Clicking opens the full viewer via `onOpen`.
- *  - If the file is missing, the tile is marked unavailable instead of
- *    silently disappearing — a typo should be visible, not invisible.
- */
 export function videoCard(video: Video, { base = '', onOpen }: VideoCardOptions = {}): HTMLElement {
   const wrap = document.createElement('article');
   wrap.className = 'video-card';
-  wrap.tabIndex = 0;
-  wrap.setAttribute('role', 'button');
-  wrap.setAttribute('aria-label', `Play ${video.caption || video.file}`);
 
   const vid = document.createElement('video');
-  // VIDEO_DIR already ends in '/', and callers pass '' for base, so this is a
-  // single clean join. `base` is honoured for backwards compatibility only.
-  vid.src = `${base}${VIDEO_DIR}${encodeURI(video.file)}`;
+  vid.src = video.url || `${base}${VIDEO_DIR}${encodeURI(video.file)}`;
   vid.muted = true;
-  vid.loop = true;
   vid.playsInline = true;
-  vid.preload = 'metadata';
+  vid.preload = 'none';
   vid.setAttribute('playsinline', '');
   vid.setAttribute('aria-hidden', 'true');
+  vid.setAttribute('tabindex', '-1');
 
-  // Reveal the poster frame as soon as dimensions are known, and keep the
-  // player paused on the first frame so it reads as a still image.
   vid.addEventListener('loadedmetadata', () => {
-    wrap.classList.add('is-ready');
     try {
       vid.currentTime = 0.1;
     } catch {
-      /* seeking before data is ready is harmless */
+      // The tile remains a usable play card if the browser cannot seek yet.
     }
   });
-
-  // A genuinely broken/missing file: mark it, do not hide it.
+  vid.addEventListener('loadeddata', () => wrap.classList.add('is-ready'));
   vid.addEventListener('error', () => {
     wrap.classList.add('is-unavailable');
   });
 
-  const play = () => {
-    if (wrap.classList.contains('is-unavailable')) return;
-    void vid.play().catch(() => {});
-  };
-  const stop = () => {
-    vid.pause();
-    try {
-      vid.currentTime = 0.1;
-    } catch {
-      /* ignore */
-    }
-  };
+  const media = document.createElement('div');
+  media.className = 'video-card__media';
+  media.appendChild(vid);
 
-  wrap.addEventListener('mouseenter', play);
-  wrap.addEventListener('mouseleave', stop);
-  wrap.addEventListener('focus', play);
-  wrap.addEventListener('blur', stop);
-  wrap.addEventListener('click', () => onOpen?.(video));
-  wrap.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onOpen?.(video);
-    }
-  });
+  const play = document.createElement('button');
+  play.className = 'video-card__play';
+  play.type = 'button';
+  play.setAttribute('aria-label', `Play ${video.caption || video.file}`);
+  play.addEventListener('click', () => onOpen?.(video));
+  media.appendChild(play);
 
-  // Play badge overlay.
-  const badge = document.createElement('span');
-  badge.className = 'video-card__play';
-  badge.setAttribute('aria-hidden', 'true');
+  const details = document.createElement('div');
+  details.className = 'video-card__details';
 
-  wrap.appendChild(vid);
-  wrap.appendChild(badge);
+  const category = document.createElement('p');
+  category.className = 'video-card__category';
+  category.textContent = video.category || video.dept.replace('-', ' ');
 
-  if (video.caption) {
-    const label = document.createElement('div');
-    label.className = 'video-card__label';
-    label.textContent = video.caption;
-    wrap.appendChild(label);
+  const caption = document.createElement('h3');
+  caption.className = 'video-card__title';
+  caption.textContent = video.caption || video.file;
+
+  const price = document.createElement('p');
+  price.className = 'video-card__price';
+  price.textContent = video.priceKes == null
+    ? 'Price confirmation required'
+    : `KES ${new Intl.NumberFormat('en-KE').format(video.priceKes)}`;
+
+  const review = document.createElement('p');
+  review.className = 'video-card__review';
+  review.textContent = video.reviewRequired ? 'Description based on filename — review needed' : '';
+
+  const actions = document.createElement('div');
+  actions.className = 'video-card__actions';
+  const playLink = document.createElement('button');
+  playLink.className = 'btn btn--ghost';
+  playLink.type = 'button';
+  playLink.textContent = 'Play video';
+  playLink.addEventListener('click', () => onOpen?.(video));
+
+  const book = document.createElement('a');
+  book.className = 'btn btn--primary';
+  book.href = `#/whatsapp-booking?${new URLSearchParams({ styleFile: video.file })}`;
+  book.textContent = 'Book This Style';
+
+  actions.append(playLink, book);
+  details.append(category, caption, price);
+  if (review.textContent) details.appendChild(review);
+  details.appendChild(actions);
+  wrap.append(media, details);
+
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        vid.preload = 'metadata';
+        observer.disconnect();
+      }
+    }, { rootMargin: '160px' });
+    observer.observe(wrap);
   }
 
   return wrap;

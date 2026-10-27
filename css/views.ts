@@ -6,9 +6,10 @@ import { DEPARTMENTS, Department, SERVICES, servicesByDept } from './services.js
 import { serviceCard } from './services-card.js';
 import { mountFilters } from './filter.js';
 import { mountGallery, mountHeroVideo, mountCategorisedGallery } from './gallery.js';
-import { mountVideoAdmin } from './video-admin.js';
-import { buildBookingMessage } from './whatsapp-booking.js';
+import { buildBookingMessage, buildStyleBookingMessage } from './whatsapp-booking.js';
 import { navigate } from './router.js';
+import { loadVideos, VIDEOS } from './videos.js';
+import { renderOwnerDashboard } from './owner.js';
 
 /** Small helper: set the document title per view. */
 function setTitle(suffix: string): void {
@@ -31,30 +32,30 @@ export function renderHome(root: HTMLElement): void {
   mountHeroVideo(root);
 
   const intro = el('section', 'section container', `
-    <div class="eyebrow">Beauty studio</div>
-    <h2 style="margin-top:var(--sp-3)">Luxury beauty care for hair, makeup, nails and self-confidence.</h2>
-    <p class="lede" style="margin-top:var(--sp-4)">Thoughtful styling, elevated finishes, and appointments designed around your schedule and your glow.</p>`);
+    <div class="eyebrow">${CONFIG.address || 'Beauty studio'}</div>
+    <h2 style="margin-top:var(--sp-3)">Wigs, makeup, nails and brows &amp; lashes.</h2>
+    <p class="lede" style="margin-top:var(--sp-4)">${CONFIG.tagline}</p>`);
 
   const stats = el('div', 'stats-grid');
   stats.style.marginTop = 'var(--sp-6)';
   stats.innerHTML = `
-    <div class="card"><div class="card__body"><div class="eyebrow">Style</div><h3 class="card__title">Tailored</h3><p class="card__meta">Looks planned around your features, your mood, and your routine.</p></div></div>
-    <div class="card"><div class="card__body"><div class="eyebrow">Service</div><h3 class="card__title">4 departments</h3><p class="card__meta">Wigs, makeup, nails and brows designed for everyday confidence.</p></div></div>
-    <div class="card"><div class="card__body"><div class="eyebrow">Comfort</div><h3 class="card__title">Calm</h3><p class="card__meta">A clean, relaxed environment with a careful, personal touch.</p></div></div>
-    <div class="card"><div class="card__body"><div class="eyebrow">Booking</div><h3 class="card__title">Simple</h3><p class="card__meta">Send your request and confirm the appointment on WhatsApp.</p></div></div>
+    <div class="card"><div class="card__body"><div class="eyebrow">Hair</div><h3 class="card__title">Wigs &amp; Hair</h3><p class="card__meta">Browse the currently listed hair services and styles.</p></div></div>
+    <div class="card"><div class="card__body"><div class="eyebrow">Makeup</div><h3 class="card__title">Makeup services</h3><p class="card__meta">Natural, glam and bridal makeup are listed.</p></div></div>
+    <div class="card"><div class="card__body"><div class="eyebrow">Nails</div><h3 class="card__title">Nail services</h3><p class="card__meta">Manicure, pedicure and gel nail services are listed.</p></div></div>
+    <div class="card"><div class="card__body"><div class="eyebrow">Brows &amp; Lashes</div><h3 class="card__title">Brows and lashes</h3><p class="card__meta">Browse brow shaping, tint and lash extensions.</p></div></div>
   `;
 
   intro.appendChild(stats);
 
   const experience = el('section', 'section container', `
-    <div class="eyebrow">Why clients choose us</div>
-    <h2 style="margin-top:var(--sp-3)">A beauty experience that feels polished, personal, and easy.</h2>`);
+    <div class="eyebrow">Plan a visit</div>
+    <h2 style="margin-top:var(--sp-3)">Browse services and choose how to enquire.</h2>`);
   const features = el('div', 'story-grid');
   features.style.marginTop = 'var(--sp-6)';
   features.innerHTML = `
-    <article class="card"><div class="card__body"><h3 class="card__title">Tailored results</h3><p class="card__meta">Every look is shaped around your features, your preferences, and the style you want to carry with confidence.</p></div></article>
-    <article class="card"><div class="card__body"><h3 class="card__title">Clean, comfortable service</h3><p class="card__meta">Professional care in a calm salon environment that keeps you relaxed from the first consultation to the final reveal.</p></div></article>
-    <article class="card"><div class="card__body"><h3 class="card__title">Smart booking</h3><p class="card__meta">Choose your service, share your details, and get confirmation through WhatsApp without the stress of back-and-forth.</p></div></article>
+    <article class="card"><div class="card__body"><h3 class="card__title">Choose a service</h3><p class="card__meta">Review the service list and prices currently shown on the website.</p></div></article>
+    <article class="card"><div class="card__body"><h3 class="card__title">Send a request</h3><p class="card__meta">Use the appointment form or prepare a style-specific message in WhatsApp.</p></div></article>
+    <article class="card"><div class="card__body"><h3 class="card__title">Wait for confirmation</h3><p class="card__meta">The salon must confirm your preferred appointment time. Requests are not automatically confirmed.</p></div></article>
   `;
   experience.appendChild(features);
 
@@ -62,30 +63,30 @@ export function renderHome(root: HTMLElement): void {
     <div class="story-grid">
       <div class="story-panel">
         <div class="eyebrow">Our approach</div>
-        <h2 style="margin-top:var(--sp-3)">Beauty that feels intentional, flattering, and worth repeating.</h2>
-        <p class="lede" style="margin-top:var(--sp-4)">We combine great technique with a calm, confident studio experience so you leave looking polished and feeling like yourself — only more elevated.</p>
+        <h2 style="margin-top:var(--sp-3)">Wangui Beauty Bar</h2>
+        <p class="lede" style="margin-top:var(--sp-4)">${CONFIG.tagline}</p>
       </div>
       <div class="card">
         <div class="card__body">
-          <div class="eyebrow">Salon promise</div>
+          <div class="eyebrow">Currently listed</div>
           <ul class="feature-list" style="margin-top:var(--sp-4)">
-            <li>Thoughtful consultations before each service</li>
-            <li>Comfort-first care from start to finish</li>
-            <li>Natural, polished results that last beautifully</li>
-            <li>Flexible booking and clear follow-up</li>
+            <li>Wigs &amp; Hair</li>
+            <li>Makeup</li>
+            <li>Nails</li>
+            <li>Brows &amp; Lashes</li>
           </ul>
         </div>
       </div>
     </div>`);
 
   const signature = el('section', 'section container', `
-    <div class="eyebrow">Signature looks</div>
-    <h2 style="margin-top:var(--sp-3)">Our most-loved beauty moments.</h2>
+    <div class="eyebrow">Service departments</div>
+    <h2 style="margin-top:var(--sp-3)">Explore the current service list.</h2>
     <div class="signature-grid">
-      <article class="signature-card"><span class="mini-badge">Best seller</span><h3>Glossy glam</h3><p class="card__meta">Soft glam finish for events, photos, and nights that deserve extra shine.</p></article>
-      <article class="signature-card"><span class="mini-badge">Top pick</span><h3>Natural hair luxe</h3><p class="card__meta">Refined wigs and styling that feel effortless, clean, and camera-ready.</p></article>
-      <article class="signature-card"><span class="mini-badge">Fresh look</span><h3>Well-groomed nails</h3><p class="card__meta">Clean, elegant finishing touches that make every outfit feel complete.</p></article>
-      <article class="signature-card"><span class="mini-badge">Client favorite</span><h3>Flawless brows</h3><p class="card__meta">Shape and definition that instantly lift the entire face and frame your features.</p></article>
+      <article class="signature-card"><span class="mini-badge">Makeup</span><h3>Natural Makeup</h3><p class="card__meta">Everyday natural look.</p></article>
+      <article class="signature-card"><span class="mini-badge">Wigs &amp; Hair</span><h3>Wig Installation</h3><p class="card__meta">Professional wig installation and styling.</p></article>
+      <article class="signature-card"><span class="mini-badge">Nails</span><h3>Manicure</h3><p class="card__meta">Classic manicure with polish.</p></article>
+      <article class="signature-card"><span class="mini-badge">Brows &amp; Lashes</span><h3>Brow Shaping</h3><p class="card__meta">Threading or waxing brow shape.</p></article>
     </div>`);
 
   const depts = el('section', 'section container', `
@@ -135,38 +136,38 @@ export function renderHome(root: HTMLElement): void {
   pricing.appendChild(pricingFooter);
 
   const reviews = el('section', 'section container', `
-    <div class="eyebrow">What clients value</div>
-    <h2 style="margin-top:var(--sp-3)">A salon experience that feels polished, personal, and easy to repeat.</h2>`);
+    <div class="eyebrow">Booking options</div>
+    <h2 style="margin-top:var(--sp-3)">Choose the request method that suits you.</h2>`);
   const reviewGrid = el('div', 'story-grid');
   reviewGrid.style.marginTop = 'var(--sp-6)';
   reviewGrid.innerHTML = `
-    <article class="quote-card"><p>“A polished finish that still feels like you — natural, fresh, and confident.”</p><h3 class="card__title" style="margin-top:var(--sp-4)">Personal styling</h3></article>
-    <article class="quote-card"><p>“Simple booking, clear communication, and a calm experience from first message to final look.”</p><h3 class="card__title" style="margin-top:var(--sp-4)">Easy process</h3></article>
-    <article class="quote-card"><p>“Thoughtful care, clean details, and beautiful results that are worth coming back for.”</p><h3 class="card__title" style="margin-top:var(--sp-4)">Comfort and care</h3></article>
+    <article class="quote-card"><p>Choose a listed service and provide your preferred date and time.</p><h3 class="card__title" style="margin-top:var(--sp-4)">Appointment form</h3></article>
+    <article class="quote-card"><p>Use a video card to prepare a message about a specific style.</p><h3 class="card__title" style="margin-top:var(--sp-4)">Style enquiry</h3></article>
+    <article class="quote-card"><p>Both options are requests. The salon will confirm availability.</p><h3 class="card__title" style="margin-top:var(--sp-4)">Confirmation</h3></article>
   `;
   reviews.appendChild(reviewGrid);
 
   const process = el('section', 'section container', `
     <div class="eyebrow">How it works</div>
-    <h2 style="margin-top:var(--sp-3)">From consultation to final glow, it stays simple.</h2>
+    <h2 style="margin-top:var(--sp-3)">How a booking request works.</h2>
     <div class="step-grid" style="margin-top:var(--sp-6)">
-      <article class="card"><div class="card__body"><div class="step-number">01</div><h3 class="card__title">Pick your service</h3><p class="card__meta">Choose the look, treatment, or beauty service that matches your mood and schedule.</p></div></article>
-      <article class="card"><div class="card__body"><div class="step-number">02</div><h3 class="card__title">Share your details</h3><p class="card__meta">Tell us your preferred date, time, and any notes so we can prepare the perfect session.</p></div></article>
-      <article class="card"><div class="card__body"><div class="step-number">03</div><h3 class="card__title">We confirm on WhatsApp</h3><p class="card__meta">Once approved, the salon confirms your appointment and helps you get ready for your next glow-up.</p></div></article>
+      <article class="card"><div class="card__body"><div class="step-number">01</div><h3 class="card__title">Pick a service or style</h3><p class="card__meta">Browse the current service list or choose a video style.</p></div></article>
+      <article class="card"><div class="card__body"><div class="step-number">02</div><h3 class="card__title">Send your request</h3><p class="card__meta">Share your name, preferred date and time, and any optional details.</p></div></article>
+      <article class="card"><div class="card__body"><div class="step-number">03</div><h3 class="card__title">Wait for salon confirmation</h3><p class="card__meta">Submitting a request does not confirm an appointment or check availability in real time.</p></div></article>
     </div>`);
 
   const faq = el('section', 'section container', `
     <div class="eyebrow">FAQs</div>
     <h2 style="margin-top:var(--sp-3)">Everything you need before your appointment.</h2>
     <div class="faq-list" style="margin-top:var(--sp-6)">
-      <div class="faq-item"><h3>Do I need to pay upfront?</h3><p>No. You simply send your booking request and the salon confirms your session on WhatsApp.</p></div>
-      <div class="faq-item"><h3>Can I book for a special event?</h3><p>Yes. Bridal and glam makeup, wig styling, and event-ready beauty services are all available.</p></div>
-      <div class="faq-item"><h3>What if I need a different look?</h3><p>Tell us your inspiration, preferred finish, and any concerns in the notes section. We can work around that.</p></div>
+      <div class="faq-item"><h3>Is my appointment confirmed when I submit?</h3><p>No. The salon must reply to confirm the appointment and availability.</p></div>
+      <div class="faq-item"><h3>Can I ask about a style in the gallery?</h3><p>Yes. Use “Book This Style” to prepare a WhatsApp message referencing that clip.</p></div>
+      <div class="faq-item"><h3>What if I want a service not listed?</h3><p>Contact the salon to ask whether it is available before making plans.</p></div>
     </div>`);
 
   const work = el('section', 'section container', `
-    <div class="eyebrow">Selected work</div>
-    <h2 style="margin-top:var(--sp-3)">Recent looks from the studio.</h2>`);
+    <div class="eyebrow">Video gallery</div>
+    <h2 style="margin-top:var(--sp-3)">Browse clips by department.</h2>`);
   const workBody = el('div');
   workBody.style.marginTop = 'var(--sp-6)';
   work.appendChild(workBody);
@@ -191,6 +192,151 @@ export function renderHome(root: HTMLElement): void {
 }
 
 // ─── Department page ────────────────────────────────────────────────
+
+  export function renderOtherServices(root: HTMLElement): void {
+    setTitle('Other Beauty Services');
+    const section = el('section', 'section container', `
+      <div class="eyebrow">More from the salon</div>
+      <h1 class="page-title">Other Beauty Services</h1>
+      <p class="lede">Explore the additional departments currently listed by Wangui Beauty Bar.</p>
+      <div class="grid grid--2 service-hub" aria-label="Available beauty departments"></div>`);
+    const grid = section.querySelector('.service-hub') as HTMLElement;
+    (['nails', 'brows-lashes'] as Department[]).forEach((dept) => {
+      const info = DEPARTMENTS[dept];
+      const link = document.createElement('a');
+      link.className = 'hub-card';
+      link.href = `#/dept/${dept}`;
+      const title = document.createElement('h2');
+      title.textContent = info.title;
+      const blurb = document.createElement('p');
+      blurb.textContent = info.blurb;
+      link.append(title, blurb);
+      grid.appendChild(link);
+    });
+    root.appendChild(section);
+  }
+
+  export function renderOccasions(root: HTMLElement): void {
+    setTitle('Bridal & Special Occasions');
+    const section = el('section', 'section container', `
+      <div class="eyebrow">For your occasion</div>
+      <h1 class="page-title">Bridal &amp; Special Occasions</h1>
+      <p class="lede">The current service list includes bridal and glam makeup. Ask the salon about your event and preferred look.</p>
+      <div class="grid grid--2 occasion-services" aria-label="Occasion makeup services"></div>`);
+    const grid = section.querySelector('.occasion-services') as HTMLElement;
+    SERVICES.filter((service) => ['bridal-makeup', 'glam-makeup'].includes(service.id))
+      .forEach((service) => grid.appendChild(serviceCard(service)));
+    root.appendChild(section);
+  }
+
+  export function renderContact(root: HTMLElement): void {
+    setTitle('Contact');
+    const section = el('section', 'section container contact-page', `
+      <div class="eyebrow">Visit or get in touch</div>
+      <h1 class="page-title">Contact Wangui Beauty Bar</h1>
+      <p class="lede">Send a booking request and wait for the salon to confirm your appointment and availability.</p>
+      <div class="contact-grid">
+        <article class="contact-panel"><span class="eyebrow">Address</span><p>${CONFIG.address || 'Please contact us for location details.'}</p></article>
+        <article class="contact-panel"><span class="eyebrow">Phone</span><p>${CONFIG.phoneDisplay || 'Contact details not configured.'}</p></article>
+        <article class="contact-panel"><span class="eyebrow">Opening hours</span><p>${CONFIG.businessHours.length
+      ? CONFIG.businessHours.map((hours) => `${hours.day}: ${hours.hours}`).join('<br>')
+      : 'Please contact us for opening hours.'}</p></article>
+      </div>`);
+    const actions = document.createElement('div');
+    actions.className = 'contact-actions';
+    if (CONFIG.whatsappNumber) {
+      const link = document.createElement('a');
+      link.className = 'btn btn--primary';
+      link.href = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(`Hello ${CONFIG.salonName}, I would like to ask about an appointment.`)}`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Message us on WhatsApp';
+      actions.appendChild(link);
+    }
+    section.appendChild(actions);
+    root.appendChild(section);
+  }
+
+  export async function renderWhatsAppBooking(root: HTMLElement, params: URLSearchParams): Promise<void> {
+    setTitle('Book via WhatsApp');
+    await loadVideos();
+
+    const service = SERVICES.find((item) => item.id === params.get('serviceId'));
+    const video = VIDEOS.find((item) => item.file === params.get('styleFile'));
+    const selection = service
+      ? {
+        service: service.name,
+        category: DEPARTMENTS[service.dept].title,
+        style: service.name,
+        priceKes: service.price || null,
+      }
+      : video
+        ? {
+          service: video.caption,
+          category: video.category || DEPARTMENTS[video.dept].title,
+          style: video.caption,
+          reference: video.file,
+          priceKes: video.priceKes ?? null,
+        }
+        : {
+          service: 'Beauty service enquiry',
+          category: 'Please describe your preferred service',
+          style: 'To be discussed',
+          priceKes: null,
+        };
+
+    const section = el('section', 'section container whatsapp-booking-page', `
+      <div class="eyebrow">A personal booking request</div>
+      <h1 class="page-title">Book via WhatsApp</h1>
+      <p class="lede">Share your preferred date and time. WhatsApp will open with a message for you to review and send. The salon must confirm availability; this is not an automatic booking.</p>
+      <div class="selection-summary">
+        <p><span>Service</span><strong class="selection-service"></strong></p>
+        <p><span>Category</span><strong class="selection-category"></strong></p>
+        <p><span>Style</span><strong class="selection-style"></strong></p>
+        <p><span>Price</span><strong class="selection-price"></strong></p>
+      </div>
+      <form class="form whatsapp-booking-form">
+        <div><label for="wa-name">Your name</label><input id="wa-name" name="name" autocomplete="name" required></div>
+        <div class="dual-row">
+          <div><label for="wa-date">Preferred date</label><input id="wa-date" name="date" type="date" required></div>
+          <div><label for="wa-time">Preferred time</label><input id="wa-time" name="time" type="time" required></div>
+        </div>
+        <div><label for="wa-request">Anything you would like us to know? (optional)</label><textarea id="wa-request" name="request" rows="3"></textarea></div>
+        <button class="btn btn--primary" type="submit">Prepare WhatsApp message</button>
+        <p class="card__meta" role="status" aria-live="polite">Your message is not sent until you press Send in WhatsApp.</p>
+      </form>`);
+
+    (section.querySelector('.selection-service') as HTMLElement).textContent = selection.service;
+    (section.querySelector('.selection-category') as HTMLElement).textContent = selection.category;
+    (section.querySelector('.selection-style') as HTMLElement).textContent = selection.style;
+    (section.querySelector('.selection-price') as HTMLElement).textContent = selection.priceKes === null
+      ? 'Price confirmation required'
+      : `KES ${new Intl.NumberFormat('en-KE').format(selection.priceKes)}`;
+
+    const form = section.querySelector('form') as HTMLFormElement;
+    const status = form.querySelector('[role="status"]') as HTMLElement;
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (!form.reportValidity() || !CONFIG.whatsappNumber) return;
+      const details = {
+        ...selection,
+        name: (form.querySelector('#wa-name') as HTMLInputElement).value.trim(),
+        date: (form.querySelector('#wa-date') as HTMLInputElement).value,
+        time: (form.querySelector('#wa-time') as HTMLInputElement).value,
+        request: (form.querySelector('#wa-request') as HTMLTextAreaElement).value.trim(),
+      };
+      const link = document.createElement('a');
+      link.className = 'btn btn--wa';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.href = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(buildStyleBookingMessage(details))}`;
+      link.textContent = 'Continue to WhatsApp';
+      status.textContent = 'Review your request, continue to WhatsApp, then press Send. The salon will confirm availability.';
+      status.appendChild(document.createTextNode(' '));
+      status.appendChild(link);
+    });
+    root.appendChild(section);
+  }
 
 export function renderDepartment(root: HTMLElement, dept: string): void {
   const info = DEPARTMENTS[dept as Department];
@@ -370,124 +516,22 @@ export function renderBooking(root: HTMLElement, prefillService = ''): void {
       wa.textContent = 'Continue in WhatsApp';
       notice.appendChild(wa);
       form.reset();
-    }).catch((error: Error) => {
+    }).catch(() => {
       notice.style.display = 'block';
-      notice.textContent = error.message || 'Unable to send your request. Please try WhatsApp directly.';
+      notice.replaceChildren(document.createTextNode(
+        'The website could not confirm that your request was recorded. Contact the salon on WhatsApp to check before sending it again. Your appointment is not confirmed. ',
+      ));
+      const wa = document.createElement('a');
+      wa.className = 'btn btn--wa';
+      wa.target = '_blank';
+      wa.rel = 'noopener';
+      wa.href = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(
+        `This appointment is not confirmed. The website could not confirm whether this request was recorded. Please check before entering it again.\n\n${buildBookingMessage(details)}`,
+      )}`;
+      wa.textContent = 'Follow up in WhatsApp';
+      notice.appendChild(wa);
     }).finally(() => { btn.disabled = false; });
   });
-}
-
-// ─── Calendar page ──────────────────────────────────────────────────
-
-function escapeHtml(value: unknown): string {
-  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  }[char] as string));
-}
-
-/** Staff booking dashboard. Booking data is loaded only after server login. */
-export function renderAdmin(root: HTMLElement): void {
-  setTitle('Staff bookings');
-  const section = el('section', 'section container', `
-    <div class="eyebrow">Staff</div>
-    <h1 style="margin-top:var(--sp-3)">Booking requests</h1>
-    <p class="lede" style="margin-top:var(--sp-4)">Sign in to review requests and update their status.</p>`);
-  const panel = el('div');
-  panel.style.marginTop = 'var(--sp-6)';
-  section.appendChild(panel);
-  root.appendChild(section);
-
-  const showError = (message: string) => {
-    panel.innerHTML = `<p class="empty-state">${escapeHtml(message)}</p>`;
-  };
-
-  const showDashboard = async () => {
-    panel.innerHTML = '<p class="card__meta">Loading booking requests…</p>';
-    try {
-      const response = await fetch('/api/bookings');
-      if (!response.ok) throw new Error('Could not load bookings. Sign in again if your session expired.');
-      const data = await response.json() as { bookings: Array<Record<string, string>> };
-      const header = document.createElement('div');
-      header.className = 'form__actions';
-      const refresh = document.createElement('button');
-      refresh.className = 'btn btn--ghost'; refresh.textContent = 'Refresh';
-      refresh.addEventListener('click', () => { void showDashboard(); });
-      const logout = document.createElement('button');
-      logout.className = 'btn btn--ghost'; logout.textContent = 'Sign out';
-      logout.addEventListener('click', async () => {
-        await fetch('/api/admin/logout', { method: 'POST' });
-        showLogin();
-      });
-      header.append(refresh, logout);
-      const list = document.createElement('div');
-      list.className = 'stack';
-      list.style.marginTop = 'var(--sp-5)';
-      if (!data.bookings.length) list.innerHTML = '<div class="empty-state">No booking requests yet.</div>';
-      data.bookings.forEach((booking) => {
-        const card = document.createElement('article');
-        card.className = 'card';
-        const safe = (value: string) => escapeHtml(value);
-        card.innerHTML = `<div class="card__body">
-          <h2 class="card__title">${safe(booking.service)} · ${safe(booking.date)} at ${safe(booking.time)}</h2>
-          <p class="card__meta">${safe(booking.name)} · ${safe(booking.phone)} · ${safe(booking.status)}</p>
-          ${booking.notes ? `<p class="card__meta" style="margin-top:var(--sp-2)">${safe(booking.notes)}</p>` : ''}
-          <p class="card__meta" style="margin-top:var(--sp-2)">Request ${safe(booking.id)}</p>
-          <div style="display:flex;gap:var(--sp-3);align-items:center;margin-top:var(--sp-3)">
-            <label for="status-${safe(booking.id)}">Status</label>
-            <select id="status-${safe(booking.id)}">
-              ${['pending', 'confirmed', 'declined', 'completed'].map(status => `<option value="${status}" ${booking.status === status ? 'selected' : ''}>${status}</option>`).join('')}
-            </select><button class="btn btn--primary" type="button">Save</button>
-          </div>
-        </div>`;
-        const selectStatus = card.querySelector('select') as HTMLSelectElement;
-        const save = card.querySelector('button') as HTMLButtonElement;
-        save.addEventListener('click', async () => {
-          save.disabled = true;
-          try {
-            const updated = await fetch(`/api/bookings/${encodeURIComponent(booking.id)}`, {
-              method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status: selectStatus.value }),
-            });
-            if (!updated.ok) throw new Error('Could not update this request.');
-            void showDashboard();
-          } catch (error) { showError((error as Error).message); }
-          finally { save.disabled = false; }
-        });
-        list.appendChild(card);
-      });
-      panel.replaceChildren(header, list);
-    } catch (error) { showError((error as Error).message); }
-  };
-
-  const showLogin = () => {
-    panel.innerHTML = `<form class="form" style="max-width:420px">
-      <div><label for="admin-password">Staff password</label><input id="admin-password" type="password" autocomplete="current-password" required></div>
-      <button class="btn btn--primary" type="submit">Sign in</button>
-      <p class="card__meta" role="status" aria-live="polite"></p>
-    </form>`;
-    const form = panel.querySelector('form') as HTMLFormElement;
-    const password = form.querySelector('input') as HTMLInputElement;
-    const message = form.querySelector('[role="status"]') as HTMLElement;
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const button = form.querySelector('button') as HTMLButtonElement;
-      button.disabled = true; message.textContent = 'Signing in…';
-      try {
-        const response = await fetch('/api/admin/login', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: password.value }),
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Sign-in failed.');
-        await showDashboard();
-      } catch (error) { message.textContent = (error as Error).message; }
-      finally { button.disabled = false; }
-    });
-  };
-
-  void fetch('/api/admin/session').then(response => response.json())
-    .then((session: { authenticated: boolean }) => session.authenticated ? showDashboard() : showLogin())
-    .catch(() => showError('The booking service is unavailable. Start the site server and try again.'));
 }
 
 // ─── Not found ──────────────────────────────────────────────────────
@@ -530,25 +574,36 @@ export function registerRoutes(register: (path: string, render: (ctx: { path: st
     if (outlet) renderGalleryPage(outlet);
   });
 
+  register('/other-services', () => {
+    const outlet = document.getElementById('view');
+    if (outlet) renderOtherServices(outlet);
+  });
+
+  register('/occasions', () => {
+    const outlet = document.getElementById('view');
+    if (outlet) renderOccasions(outlet);
+  });
+
+  register('/contact', () => {
+    const outlet = document.getElementById('view');
+    if (outlet) renderContact(outlet);
+  });
+
+  register('/whatsapp-booking', (ctx) => {
+    const outlet = document.getElementById('view');
+    if (outlet) void renderWhatsAppBooking(outlet, ctx.params);
+  });
+
   register('/booking', (ctx) => {
     const outlet = document.getElementById('view');
     if (outlet) renderBooking(outlet, ctx.params.get('service') ?? '');
   });
 
-  register('/calendar', () => {
+  register('/owner', () => {
     const outlet = document.getElementById('view');
-    if (outlet) renderAdmin(outlet);
+    if (outlet) void renderOwnerDashboard(outlet);
   });
 
-  register('/admin', () => {
-    const outlet = document.getElementById('view');
-    if (outlet) renderAdmin(outlet);
-  });
-
-  register('/admin/videos', () => {
-    const outlet = document.getElementById('view');
-    if (outlet) mountVideoAdmin(outlet);
-  });
 }
 
 /** Convenience for links/buttons that should change view. */

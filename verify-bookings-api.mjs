@@ -2,7 +2,6 @@ import pg from 'pg';
 
 const { Pool } = pg;
 const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:3000';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const connectionString = process.env.DATABASE_URL || '';
 const databaseName = connectionString
   ? decodeURIComponent(new URL(connectionString).pathname.slice(1))
@@ -20,7 +19,6 @@ const pool = new Pool({
 });
 
 let failures = 0;
-let cookie = '';
 const token = `verification-${Date.now()}`;
 const booking = {
   name: 'Booking API Verification',
@@ -55,49 +53,25 @@ async function createBooking() {
   });
 }
 
-async function setStatus(id, status) {
-  return fetch(new URL(`/api/bookings/${id}`, API_BASE_URL), {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json', cookie },
-    body: JSON.stringify({ status }),
-  });
-}
-
 try {
   if (!isTestDatabase) throw new Error('Refusing to run unless PGDATABASE or DATABASE_URL names a test/staging database.');
-  if (!ADMIN_PASSWORD) throw new Error('Set ADMIN_PASSWORD for the staging server.');
-
-  const login = await fetch(new URL('/api/admin/login', API_BASE_URL), {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ password: ADMIN_PASSWORD }),
-  });
-  check('staff login accepted', login.ok, String(login.status));
-  if (!login.ok) throw new Error('Cannot continue without a staff session.');
-  cookie = login.headers.get('set-cookie')?.split(';')[0] || '';
-  if (!cookie) throw new Error('Server did not issue a session cookie.');
 
   const firstResponse = await createBooking();
-  check('create first pending booking', firstResponse.status === 201, String(firstResponse.status));
+  check('create a public booking request', firstResponse.status === 201, String(firstResponse.status));
   if (firstResponse.status !== 201) throw new Error('First booking request failed.');
   const first = (await firstResponse.json()).booking;
 
-  const decline = await setStatus(first.id, 'declined');
-  check('decline first booking', decline.status === 200, String(decline.status));
-
   const secondResponse = await createBooking();
-  check('book the released time slot', secondResponse.status === 201, String(secondResponse.status));
-  if (secondResponse.status !== 201) throw new Error('Could not book the released slot.');
-  const second = (await secondResponse.json()).booking;
-
-  const reactivate = await setStatus(first.id, 'confirmed');
-  check('reject reactivation that now overlaps', reactivate.status === 409, String(reactivate.status));
-
-  const overlap = await createBooking();
-  check('reject a new overlapping booking', overlap.status === 409, String(overlap.status));
-
-  const confirm = await setStatus(second.id, 'confirmed');
-  check('confirm the non-conflicting booking', confirm.status === 200, String(confirm.status));
+  check('accept another request for the same preferred time', secondResponse.status === 201, String(secondResponse.status));
+  if (secondResponse.status !== 201) throw new Error('Overlapping pending requests should not block public submissions.');
+  check('booking requests cannot be publicly read',
+    (await fetch(new URL('/api/bookings', API_BASE_URL))).status === 404);
+  check('booking status changes are unavailable',
+    (await fetch(new URL(`/api/bookings/${first.id}`, API_BASE_URL), {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status: 'confirmed' }),
+    })).status === 405);
 } catch (error) {
   console.error('Booking API verification error:', error.message);
   failures += 1;

@@ -22,4 +22,9 @@ Thumbs.db
 
 # Continuity
 SESSION_HANDOFF.md
-.continuity/
+.continuity/*
+# Continuity decision memory — travels with the repo (runtime state stays ignored)
+!.continuity/decisions.jsonl
+!.continuity/.gitattributes
+!.continuity/SESSION_NOTES.md
+!.continuity/INSTRUCTIONS.md
