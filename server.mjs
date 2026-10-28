@@ -10,19 +10,34 @@ import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { loadEnv, productionConfigErrors } from './lib/env.mjs';
+
+// Load .env (if present) before any configuration or infrastructure initializes.
+await loadEnv();
+
 import { log, withLogging } from './lib/logging.mjs';
 import { createPool, BookingStore } from './lib/bookings.mjs';
 import { RateLimiter } from './lib/sessions.mjs';
 import { VideoCatalogue, serveStatic } from './lib/static.mjs';
 import { Router, dispatch } from './lib/router.mjs';
 import { validateBooking } from './lib/scheduling.mjs';
-import { json } from './lib/http.mjs';
+import { json, readJsonBody, clientIp } from './lib/http.mjs';
+import { assertSameOrigin, parseAllowedOrigins } from './lib/origin.mjs';
 import { OwnerVideoService } from './lib/owner-videos.mjs';
 
 // ─── Configuration guard ─────────────────────────────────────────────
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
 const IS_PROD = process.env.NODE_ENV === 'production';
+
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65_535) {
+  throw new Error('PORT must be an integer between 1 and 65535.');
+}
+
+const productionErrors = productionConfigErrors();
+if (productionErrors.length) {
+  throw new Error(`Production configuration is incomplete: ${productionErrors.join(' ')}`);
+}
 
 // ─── Infrastructure ──────────────────────────────────────────────────
 function createSerialQueue() {
@@ -45,44 +60,10 @@ const videoCatalogue = new VideoCatalogue({
   pool,
 });
 
-function clientIp(req) {
-  return req.socket.remoteAddress || 'unknown';
-}
-
-async function readJsonBody(req, limit = 16_384) {
-  const chunks = [];
-  let received = 0;
-  for await (const chunk of req) {
-    received += chunk.length;
-    if (received > limit) {
-      throw Object.assign(new Error('Request is too large.'), { status: 413 });
-    }
-    chunks.push(chunk);
-  }
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
-  } catch {
-    throw Object.assign(new Error('Invalid JSON request.'), { status: 400 });
-  }
-}
-
-function assertSameOrigin(req) {
-  const origin = req.headers.origin;
-  const site = req.headers['sec-fetch-site'];
-  if (site === 'cross-site') {
-    throw Object.assign(new Error('Cross-site requests are not allowed.'), { status: 403 });
-  }
-  if (!origin) return;
-  let originHost;
-  try {
-    originHost = new URL(origin).host.toLowerCase();
-  } catch {
-    throw Object.assign(new Error('Invalid request origin.'), { status: 403 });
-  }
-  if (originHost !== String(req.headers.host || '').toLowerCase()) {
-    throw Object.assign(new Error('Cross-origin requests are not allowed.'), { status: 403 });
-  }
-}
+// Origins trusted for state-changing owner requests beyond the request's own
+// host. Required when the frontend is served from Cloudflare Pages and /api/*
+// is proxied to this backend, because the forwarded Origin is the Pages domain.
+const ALLOWED_ORIGINS = parseAllowedOrigins(process.env.SITE_URL);
 
 // ─── Routes ──────────────────────────────────────────────────────────
 const router = new Router();
@@ -115,7 +96,7 @@ router.post('/api/admin/session', async (req, res) => {
   if (ownerLoginLimiter.take(clientIp(req))) {
     return json(res, 429, { error: 'Too many sign-in attempts. Please wait before trying again.' });
   }
-  assertSameOrigin(req);
+  assertSameOrigin(req, ALLOWED_ORIGINS);
   json(res, 200, await ownerVideos.signIn(req, res, await readJsonBody(req)));
 });
 
@@ -125,7 +106,7 @@ router.get('/api/admin/session', async (req, res) => {
 });
 
 router.delete('/api/admin/session', async (req, res) => {
-  assertSameOrigin(req);
+  assertSameOrigin(req, ALLOWED_ORIGINS);
   json(res, 200, await ownerVideos.signOut(req, res));
 });
 
@@ -135,7 +116,7 @@ router.get('/api/admin/videos', async (req, res) => {
 });
 
 router.post('/api/admin/videos', async (req, res) => {
-  assertSameOrigin(req);
+  assertSameOrigin(req, ALLOWED_ORIGINS);
   const context = await ownerVideos.authenticate(req, res);
   const metadata = Object.fromEntries(new URL(req.url, 'http://localhost').searchParams);
   if (metadata.published === 'true') metadata.published = true;
@@ -144,13 +125,13 @@ router.post('/api/admin/videos', async (req, res) => {
 });
 
 router.patch('/api/admin/videos/:id', async (req, res, { id }) => {
-  assertSameOrigin(req);
+  assertSameOrigin(req, ALLOWED_ORIGINS);
   await ownerVideos.authenticate(req, res);
   json(res, 200, { video: await ownerVideos.update(id, await readJsonBody(req)) });
 });
 
 router.delete('/api/admin/videos/:id', async (req, res, { id }) => {
-  assertSameOrigin(req);
+  assertSameOrigin(req, ALLOWED_ORIGINS);
   const context = await ownerVideos.authenticate(req, res);
   json(res, 200, await ownerVideos.delete(context, id));
 });

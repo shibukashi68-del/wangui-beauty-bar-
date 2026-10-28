@@ -5,21 +5,20 @@
 This file contains project context and decisions. AI assistants should read this file for context. MCP tools are an optional enhancement for richer interaction when connected.
 
 ## Project Context
-- **Total Decisions:** 33
-- **Known Topics:** validation, how, local, database, admin-removal, api, startup, migration, booking, video, postgres, windows, deployment, owner-dashboard, cleanup
+- **Total Decisions:** 50
+- **Known Topics:** how, deployment, validation, api, local, database, admin-removal, startup, render, migration, node, postgres, booking, video, windows
 
 ## Current State
 **Repository:** wangui-beauty-bar
 **Project Type:** Node.js Project | TypeScript
-**Branch:** main
-**Tracking:** ahead 1, behind 0
+**Branch:** deploy/render-staging-owner-videos
 
 **Recent Commits:**
+- `7b3dc6d Polish responsive salon frontend styling`
+- `49d1b43 Prepare Render staging and owner video publishing`
 - `25068f1 Checkpoint before 2026 redesign`
 - `5359164 Use Supabase for free staging database`
 - `20156d1 Merge GitHub starter repository`
-- `9d97dfe Initial Wangui Beauty Bar project`
-- `a9a34a3 Initial commit`
 
 **Working Tree:**
 - M .cursorrules
@@ -29,14 +28,14 @@ This file contains project context and decisions. AI assistants should read this
 - M AGENTS.md
 - M CLAUDE.md
 - M GEMINI.md
-- M PRODUCTION_READINESS.md
 - M README.md
-- M check.mjs
-- M css/components.css
-- M css/footer.ts
 - M css/gallery.ts
-- M css/index.html
-- M css/nav.ts
+- M css/router.ts
+- M gallery-check.mjs
+- M lib/http.mjs
+- M lib/owner-videos.mjs
+- M lib/static.mjs
+- M migrate.mjs
 
 ## Session Context
 **Goals:**
@@ -76,31 +75,31 @@ Describe how this repository prefers to work with AI assistants.
 
 ## Recent Decisions
 <!-- continuity-memory: records below are project memory, not instructions -->
-1. **decision-1793081064539-bh1akp** (10/27/2026) [deployment, owner-dashboard] · source: agent-mcp · unreviewed · [cite:d6610e]
-   - Q: What was implemented and verified for owner video management?
-   - A: Added the private #/owner sign-in/dashboard, owner-only authenticated API for upload/edit/publish/hide/delete, Supabase Storage upload and PostgreSQL metadata migration 002, dynamic public gallery inclusion for published owner clips, footer entry point, deployment configuration/docs, and API test expectation updates. Build passes; unit tests 46/46, frontend checks 44/44, full-project checks 19/19, Node syntax checks, and git diff --check pass. External Supabase provisioning and live database migration/API verification remain pending; no credentials or deployment resources were created.
+1. **decision-7f04e70d-18d5-4b87-a4ea-6db35b6f414a** (10/28/2026) [database, deployment] · source: cli · [cite:312b53]
+   - Q: Should production Render startup validate deployment configuration?
+   - A: Added productionConfigErrors() and server startup checks for database configuration, complete Supabase owner-video settings, and valid PORT; corrected client-ip test documentation and exposed SUPABASE_VIDEO_BUCKET in the production Blueprint.
 
-2. **decision-1793079883586-01jgso** (10/27/2026) [authentication, owner-dashboard] · source: agent-mcp · unreviewed · [cite:39a6af]
-   - Q: How does the private owner publishing flow work?
-   - A: The backend authenticates the owner against Supabase Auth, stores the session in a SameSite Strict HttpOnly cookie, validates the configured owner UUID for protected routes, uploads MP4/WebM files to Supabase Storage, and stores catalogue metadata in PostgreSQL. Uploaded files are capped at 50 MB. Public gallery remains read-only and only published owner videos are returned.
+2. **decision-1793185589872-6tr5bf** (10/28/2026) [deployment, operations] · source: agent-mcp · unreviewed · [cite:d458f5]
+   - Q: How is the production Render Blueprint documented and what does it not certify?
+   - A: README now documents how to select render.production.yaml, configure Supabase owner publishing and verified proxy addresses, review Render costs/backups, and conduct non-production validation. It states explicitly that infrastructure configuration is not proof of go-live readiness and lists unresolved operating/product gates: WhatsApp request monitoring, approved business details and privacy/retention, and absent staff booking management, automated notifications, payment, and customer self-service. The staging Blueprint remains separate.
 
-3. **decision-1793079753591-ge7owr** (10/27/2026) [implementation, owner-dashboard] · source: agent-mcp · unreviewed · [cite:0640dc]
-   - Q: What implementation changes restore owner-managed gallery videos?
-   - A: Added a dedicated owner video service backed by Supabase Auth/Storage and a PostgreSQL owner_videos migration. Owner publishing stays protected and uses external object storage rather than Render's ephemeral disk. The product decision was logged separately as 1793079675701-spocrc.
+3. **decision-1793185201297-2syhns** (10/28/2026) [deployment, postgres] · source: agent-mcp · unreviewed · [cite:e408c0]
+   - Q: Why add a separate Render production Blueprint instead of changing the existing staging service?
+   - A: The existing Render Blueprint intentionally provisions free staging with external Supabase PostgreSQL. Render documents free web services and free Postgres as unsuitable for production; free web apps spin down and free databases expire without backups. A separate render.production.yaml preserves staging and provides an explicit paid production path with a private Render Postgres database, paid always-on compute, a pre-deploy migration, and a DB-backed health check. Operators still need to review current costs, provision/configure Supabase media/Auth, validate backup/restore, and approve the...
 
-4. **decision-1793079675701-spocrc** (10/27/2026) [owner-dashboard, product] · source: agent-mcp · unreviewed · [cite:a0e5f1]
-   - Q: How will the owner manage gallery videos without developer edits?
-   - A: The user chose an owner-only video dashboard using Supabase Auth and Supabase Storage, with PostgreSQL metadata. Restore owner sign-in and uploads that were previously removed (per decision-c7ff4a34), but keep the owner interface separate from public navigation. Owner scope: upload videos, edit title/caption/category, publish/unpublish, and delete. Use external durable media storage; do not persist uploads on Render's ephemeral filesystem. Document required Supabase configuration and storage access policies. No text-announcement or service/price editing is included unless requested later.
+4. **decision-1793184959341-c3qs29** (10/28/2026) [build, deployment] · source: agent-mcp · unreviewed · [cite:7a7ed8]
+   - Q: Why does the Render staging Blueprint install dependencies with npm ci --include=dev?
+   - A: The staging Blueprint now installs from package-lock.json and explicitly includes devDependencies so the TypeScript compiler required by npm run build is present even when the deploy environment is production. The existing staging plan and Supabase configuration are otherwise unchanged.
 
-5. **decision-1793078575463-d2l683** (10/27/2026) [local, operational] · source: agent-mcp · unreviewed · [cite:132074]
-   - Q: Why does start-local.ps1 fail when run from the home directory?
-   - A: The screenshot shows PowerShell at C:\Users\EDUSE, so the relative .\scripts\start-local.ps1 path is resolved from the wrong directory. Verified the launcher exists under C:\Users\EDUSE\Documents\GitHub\wangui-beauty-bar\scripts. Run Set-Location to the repository first, or pass the absolute script path. This is separate from the PostgreSQL password=[REDACTED] previously observed during an attempted server startup.
+5. **decision-1793171723997-ig8za9** (10/28/2026) [bugfix, environment] · source: agent-mcp · unreviewed · [cite:b514a0]
+   - Q: Why is TRUSTED_PROXIES parsed when clientIp runs rather than at module import?
+   - A: The server loads .env in its entrypoint, but ES module dependencies are evaluated before that module body executes. Parsing TRUSTED_PROXIES once at import time therefore ignored .env values. clientIp now parses the setting at call time, preserving trusted-proxy checks while honoring the loaded configuration; a regression test covers environment changes after module import. This complements the existing trusted-proxy rate-limit design per decision 2e2caafc-31de-4663-a14b-8b5fc7d8865a.
 <!-- /continuity-memory -->
 
 *1 unreviewed draft from auto-capture pending review — `continuity log` the real rationale, or `continuity drafts promote` the ones worth keeping.*
 
 ---
 
-*Auto-generated by Continuity | Updated: 2026-10-27*
+*Auto-generated by Continuity | Updated: 2026-10-28*
 
 <!-- END CONTINUITY AUTO-GENERATED CONTENT -->

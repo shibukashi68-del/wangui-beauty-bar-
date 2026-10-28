@@ -10,6 +10,7 @@ node_modules/
 # `npm run build` (or `node ./node_modules/typescript/bin/tsc`).
 css/*.js
 css/*.js.map
+dist/
 
 # Editor / OS noise
 .DS_Store

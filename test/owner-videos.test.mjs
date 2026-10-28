@@ -40,8 +40,8 @@ function makePool() {
       if (sql.includes('INSERT INTO owner_videos')) {
         return { rows: [{ id: values[0], object_path: values[2], title: values[4] }] };
       }
-      if (sql.includes('SELECT object_path FROM owner_videos')) {
-        return { rows: [{ object_path: `${OWNER_ID}/video.mp4` }] };
+      if (sql.includes('SELECT object_path')) {
+        return { rows: [{ object_path: `${OWNER_ID}/video.mp4`, published: true }] };
       }
       return { rows: [] };
     },
@@ -144,8 +144,13 @@ test('owner update requires a valid identifier and removes storage before metada
   await assert.rejects(service.update('not-an-id', metadata), { status: 400 });
   assert.deepEqual(await service.delete(context, '123e4567-e89b-42d3-a456-426614174002'), { deleted: true });
   assert.equal(calls[1].options.method, 'DELETE');
-  assert.ok(pool.calls.at(-2).sql.includes('SET published = false'));
-  assert.ok(pool.calls.at(-1).sql.includes('DELETE FROM owner_videos'));
+  // Delete order: unpublish, remove the stored object, then drop the metadata
+  // row. A failed storage delete restores the published flag instead.
+  const unpublish = pool.calls.findIndex(({ sql }) => sql.includes('SET published = false'));
+  const removeRow = pool.calls.findIndex(({ sql }) => sql.includes('DELETE FROM owner_videos'));
+  assert.ok(unpublish >= 0, 'expected an unpublish step');
+  assert.ok(removeRow > unpublish, 'metadata row must be deleted after unpublishing');
+  assert.ok(!pool.calls.some(({ sql }) => /SET published = \$3/.test(sql)), 'no rollback on success');
 });
 
 test('public catalogue includes only published owner videos with their external storage URL', async () => {
@@ -171,7 +176,9 @@ test('public catalogue includes only published owner videos with their external 
   const videos = await catalogue.load();
   const uploaded = videos.find((video) => video.title === 'Soft glam');
   assert.equal(uploaded.url, 'https://salon.supabase.co/storage/v1/object/public/salon-videos/owner/clip.mp4');
-  assert.equal(uploaded.published, undefined);
+  // Owner rows and bundled entries now share one shape: published clips are
+  // explicitly published:true rather than relying on an undefined field.
+  assert.equal(uploaded.published, true);
   assert.equal(videos.length, 21);
 });
 

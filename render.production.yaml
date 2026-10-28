@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: wangui-beauty-bar-prod
+    runtime: node
+    region: frankfurt
+    plan: 0.5c-512mb
+    buildCommand: npm ci --include=dev && npm run build
+    preDeployCommand: npm run migrate
+    startCommand: node server.mjs
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_VERSION
+        value: 22.22.2
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: wangui-beauty-bar-prod-db
+          property: connectionString
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_OWNER_USER_ID
+        sync: false
+      - key: SUPABASE_VIDEO_BUCKET
+        sync: false
+        value: salon-videos
+      - key: SITE_URL
+        sync: false
+      - key: TRUSTED_PROXIES
+        sync: false
+
+databases:
+  - name: wangui-beauty-bar-prod-db
+    databaseName: wangui_beauty_bar
+    user: wangui_beauty_bar_app
+    region: frankfurt
+    plan: 0.5c-1g
+    ipAllowList: []

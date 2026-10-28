@@ -93,7 +93,13 @@ export function mountHeroVideo(root: HTMLElement): void {
     // Autoplay can be blocked; treat that as a still-image hero.
     vid.addEventListener('loadeddata', () => section.classList.add('has-video'));
     if (!window.matchMedia || !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      vid.play?.().catch(() => {});
+      // HTMLMediaElement.play() returns a Promise in modern browsers but
+      // `undefined` in older ones (and in jsdom). Guard the result so a
+      // non-Promise return cannot throw.
+      const attempt = vid.play?.();
+      if (attempt && typeof attempt.catch === 'function') {
+        attempt.catch(() => {});
+      }
     }
     section.appendChild(vid);
   }

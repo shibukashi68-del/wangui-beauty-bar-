@@ -1,4 +1,7 @@
 import pg from 'pg';
+import { loadEnv } from './lib/env.mjs';
+
+await loadEnv();
 
 const { Pool } = pg;
 const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:3000';

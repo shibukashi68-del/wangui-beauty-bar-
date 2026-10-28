@@ -34,7 +34,9 @@ try {
     throw 'Database migrations failed. Check the PostgreSQL error above and confirm the database exists and this user can create tables.'
   }
 
-  Write-Host 'Starting Wangui Beauty Bar. Open http://localhost:3000; press Ctrl+C to stop.'
+  $appPort = 3000
+  if (-not [int]::TryParse($env:PORT, [ref]$appPort) -or $appPort -lt 1 -or $appPort -gt 65535) { $appPort = 3000 }
+  Write-Host "Starting Wangui Beauty Bar. Open http://localhost:$appPort; press Ctrl+C to stop."
   & npm.cmd start
   if ($LASTEXITCODE -ne 0) {
     throw "The website stopped with exit code $LASTEXITCODE."

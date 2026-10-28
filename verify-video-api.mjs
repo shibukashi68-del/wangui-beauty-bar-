@@ -1,3 +1,7 @@
+import { loadEnv } from './lib/env.mjs';
+
+await loadEnv();
+
 const API_BASE_URL = process.env.API_BASE_URL || 'http://127.0.0.1:3000';
 let failures = 0;
 

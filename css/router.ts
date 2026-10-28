@@ -20,6 +20,9 @@ const routes: Route[] = [];
 let outlet: HTMLElement | null = null;
 let notFound: RouteRenderer | null = null;
 let onNavigate: ((ctx: RouteContext) => void) | null = null;
+// Hash of the last rendered route, so the async 'hashchange' event that
+// follows a programmatic navigate() does not render the same view twice.
+let lastRenderedHash: string | null = null;
 
 export function registerRoute(path: string, render: RouteRenderer): void {
   // '/wigs-hair' -> /^\/wigs\-hair\/?$/
@@ -58,11 +61,17 @@ export function parseHash(hash: string = location.hash): RouteContext {
 export function navigate(path: string, params?: Record<string, string>): void {
   const qs = params ? `?${new URLSearchParams(params).toString()}` : '';
   const next = `#${path}${qs}`;
-  if (location.hash === next) resolve();
-  else location.hash = next;
+  if (location.hash !== next) location.hash = next;
+  // Render immediately. The 'hashchange' event is asynchronous (and in some
+  // environments, e.g. jsdom or embedded WebViews, may be delayed), so the
+  // view must not wait for it. The guard in resolve() skips the duplicate
+  // render when the event does arrive.
+  resolve();
 }
 
 function resolve(): void {
+  if (location.hash === lastRenderedHash) return;
+  lastRenderedHash = location.hash;
   const ctx = parseHash();
   onNavigate?.(ctx);
   if (!outlet) return;

@@ -39,8 +39,11 @@ check('every tile has a video', videos.length === 20, `${videos.length} videos`)
 check('filter chips present', chips.length === 5, `${chips.length} chips`);
 
 const srcs = [...videos].map(v => v.getAttribute('src'));
-const badSrc = srcs.filter(s => !s.startsWith('../video/'));
-check('all srcs use ../video/ prefix', badSrc.length === 0, badSrc.join(', '));
+// The server exposes video files at the absolute /video/ route (server.mjs),
+// so tiles must use that prefix — a relative '../video/' path would resolve
+// differently depending on the page URL and break.
+const badSrc = srcs.filter(s => !s.startsWith('/video/'));
+check('all srcs use /video/ prefix', badSrc.length === 0, badSrc.join(', '));
 
 const encoded = srcs.filter(s => s.includes(' '));
 check('spaces are URL-encoded', encoded.length === 0, encoded.slice(0, 2).join(', '));

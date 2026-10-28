@@ -3,10 +3,12 @@ services:
     name: wangui-beauty-bar-staging
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run migrate && node server.mjs
     healthCheckPath: /api/health
     envVars:
+      - key: NODE_VERSION
+        value: 22.22.2
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
@@ -16,4 +18,8 @@ services:
       - key: SUPABASE_ANON_KEY
         sync: false
       - key: SUPABASE_OWNER_USER_ID
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: TRUSTED_PROXIES
         sync: false

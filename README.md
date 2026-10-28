@@ -20,6 +20,8 @@ The execution-policy bypass applies only to this PowerShell process; it does not
 
 Defaults: host `127.0.0.1`, port `5432`, user `postgres`, database `wangui_beauty_bar`.
 
+You can also create a `.env` file from `.env.example` in the project root. `server.mjs`, `migrate.mjs`, and API verification tools automatically load `.env` without third-party dependencies, while process environment variables and interactive prompts always take precedence.
+
 For manual PowerShell setup:
 
 ```powershell
@@ -49,6 +51,36 @@ The root `render.yaml` defines a free Render web service. It uses an external Su
 4. Deploy the Blueprint. It builds the TypeScript app, applies database migrations at startup, and serves `/api/health` as the health check.
 
 The app serves the bundled `/video/` files and public catalogue. Do not use this staging database for real customer bookings.
+
+## Render production setup
+
+`render.production.yaml` is a separate, paid production Blueprint; it does not change the free staging service above. It provisions a Frankfurt web service and a private, paid Render Postgres database in the same region. Review current Render pricing, database backup/retention terms, and regional availability before syncing it. No resources are provisioned by this repository change.
+
+1. In Render, create a Blueprint from this repository and select `render.production.yaml` as its configuration file. Confirm the paid service and database plans before applying it.
+2. The Blueprint installs from `package-lock.json`, includes build-time dev dependencies, pins Node.js 22.22.2, runs `npm run migrate` as the pre-deploy command, then starts the server. The `/api/health` check verifies PostgreSQL connectivity; startup refuses to listen if production database configuration is missing, owner-video settings are only partially configured, or the required schema migration is missing.
+3. Configure Supabase Auth and the public `salon-videos` Storage bucket with the owner-only write/delete policies in the owner video section below. Add the Supabase project URL, anon key, and owner Auth UUID as prompted. These values enable owner publishing; never add a service-role key.
+4. Set `SITE_URL` to the exact public frontend origin when serving through Cloudflare Pages or another separate frontend domain. For a frontend served directly by the same Render service, no extra origin is required. Add every production origin when using a custom domain.
+5. Before accepting bookings, verify how the Render ingress populates client IP headers and configure `TRUSTED_PROXIES` only with verified immediate proxy addresses. This app's rate limiter is process-local; without correct proxy configuration, visitors may share a rate-limit bucket. Do not guess proxy addresses or trust arbitrary forwarded headers.
+6. Configure database backup retention and access controls in Render, then complete a restore drill into a non-production database. Keep the database private; the Blueprint restricts it to private-network connections.
+7. Configure the custom domain and confirm HTTPS, the health check, booking submission to a non-production database, and owner authentication/video upload before launch. Do not run API verification scripts that create bookings against production.
+
+This Blueprint is production-capable infrastructure, not proof of production readiness by itself. The booking workflow still requires the salon to monitor requests and confirm appointments through WhatsApp; pending requests do not reserve a time slot. Before public launch, verify all business details, publish an approved privacy notice, define booking-data retention/deletion, and agree who monitors and responds to requests. The site has no staff booking dashboard, automated WhatsApp notification, payment processing, or customer self-service cancellation/rescheduling.
+
+## Cloudflare Pages frontend with a Node API backend
+
+Cloudflare Pages can host the static frontend, but it does not run this project's Node/PostgreSQL server. The Pages Function in `functions/api/[[path]].js` proxies same-origin `/api/*` requests to the existing HTTPS Node backend, including owner-session cookies. The backend must remain deployed and healthy for bookings, gallery API data, and owner publishing to work.
+
+For the Pages project connected to this repository, configure:
+
+- Production branch: `deploy/render-staging-owner-videos` (or the branch containing the deployment code you intend to publish).
+- Root directory: repository root.
+- Build command: `npm run build:pages`.
+- Build output directory: `dist`.
+- Environment variable: `BACKEND_ORIGIN` set to the HTTPS origin of the Node backend only, for example `https://wangui-beauty-bar.onrender.com` (no path or trailing API route).
+
+On the **backend** host, also set `SITE_URL` to the Pages origin (comma-separated if there are several), for example `SITE_URL=https://your-project.pages.dev`. Owner sign-in, upload, edit, and delete are state-changing requests, so the backend rejects any `Origin` it does not recognize. Because the proxy forwards the Pages origin while `Host` is the backend host, the two never match — without `SITE_URL` every owner action fails with `403 Cross-origin requests are not allowed.` Add your custom domain there too once it is configured.
+
+The build packages `css/` and `video/` into `dist/`; the `functions/` directory remains at the repository root for Pages Functions. After deployment, verify `/api/health` on the Pages URL. A Pages deployment does not fix a 503 from the backend; resolve the backend health failure before accepting bookings or enabling owner tools.
 
 ## Owner video publishing
 
@@ -92,7 +124,7 @@ After staging is live, verify `/api/health` and perform the documented booking a
 - Set `PGHOST`, `PGPORT`, `PGUSER`, and `PGDATABASE`, or provide `DATABASE_URL` for PostgreSQL. Use a dedicated database role with only the permissions the app needs.
 - Ship the bundled videos and `css/videos.json` with the application.
 - Configure Supabase Auth, the public media bucket, and owner-only Storage write policies before enabling owner video publishing.
-- The request rate limiter is held in process memory. Multiple instances require shared rate-limit storage or provider-level rate limiting.
+- The request rate limiter is held in process memory. Multiple instances require shared rate-limit storage or provider-level rate limiting. Set `TRUSTED_PROXIES` to the proxy's addresses so limits are keyed per customer; without it every request behind a proxy shares one bucket.
 - Use HTTPS through the hosting provider or a trusted TLS reverse proxy.
 - Provide customers a privacy notice and an operational process for responding, cancelling, and removing old requests.
 - Before public launch, confirm every service name, price, email, social handle, and business detail is verified by the salon owner.

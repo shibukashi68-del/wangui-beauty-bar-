@@ -2,6 +2,9 @@ import { promises as fs } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { loadEnv } from './lib/env.mjs';
+
+await loadEnv();
 
 const { Pool } = pg;
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -104,5 +107,8 @@ async function migrate() {
 try {
   await migrate();
 } catch {
-  // Migration failures are already logged above.
+  // The failure itself was already logged above. Exit non-zero so callers
+  // (`npm run migrate && node server.mjs`, CI, deploy scripts) stop instead of
+  // starting the app against an un-migrated database.
+  process.exitCode = 1;
 }

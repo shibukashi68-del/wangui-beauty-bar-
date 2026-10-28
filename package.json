@@ -5,6 +5,7 @@
   "description": "Wangui Beauty Bar - Salon website",
   "scripts": {
     "build": "tsc",
+    "build:pages": "npm run build && node scripts/build-pages.mjs",
     "start": "npm run build && node server.mjs",
     "watch": "tsc --watch",
     "migrate": "node migrate.mjs",
