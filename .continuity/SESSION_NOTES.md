@@ -67,4 +67,4 @@
 - Added tests for the production configuration guard and corrected the stale `client-ip.test.mjs` comment about when `TRUSTED_PROXIES` is read.
 - Added explicit `SUPABASE_VIDEO_BUCKET` configuration to `render.production.yaml` and documented the startup guard in `README.md`.
 - Verified `npm.cmd test`: 89 passing, 1 skipped integration test requiring a test database. Verified `npm.cmd run build` successfully.
-- No Render deployment or external secret configuration was performed.
+- Deployment commit `834630b` was pushed to `render-target/deploy/render-staging-owner-videos`; Render dashboard deployment and external secret configuration remain to be verified.
