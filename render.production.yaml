@@ -25,7 +25,6 @@ services:
       - key: SUPABASE_OWNER_USER_ID
         sync: false
       - key: SUPABASE_VIDEO_BUCKET
-        sync: false
         value: salon-videos
       - key: SITE_URL
         sync: false
