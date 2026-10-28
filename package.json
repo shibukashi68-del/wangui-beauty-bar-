@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc",
     "build:pages": "npm run build && node scripts/build-pages.mjs",
-    "start": "npm run build && node server.mjs",
+    "start": "npm run build && npm run migrate && node server.mjs",
     "watch": "tsc --watch",
     "migrate": "node migrate.mjs",
     "check": "node check.mjs",
